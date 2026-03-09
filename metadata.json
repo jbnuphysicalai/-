@@ -1,0 +1,5 @@
+{
+  "name": "Physical AI Lab Visitor Management",
+  "description": "A visitor management system for the Physical AI Demonstration Lab with calendar view, application, and approval features.",
+  "requestFramePermissions": []
+}
