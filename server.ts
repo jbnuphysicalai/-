@@ -1,9 +1,17 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-const db = new Database('visits.db');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const dbPath = process.env.NODE_ENV === 'production' ? '/tmp/visits.db' : 'visits.db';
+
+// In production, if we want to persist data, we'd need a mounted volume. 
+// For Cloud Run without a volume, /tmp is the only writable location (in-memory).
+const db = new Database(dbPath);
 
 // Initialize database
 db.exec(`
@@ -33,8 +41,8 @@ db.exec(`
     password TEXT NOT NULL
   )
 `);
-const adminCount = db.prepare('SELECT COUNT(*) as count FROM admin').get() as { count: number };
-if (adminCount.count === 0) {
+const adminCount = db.prepare('SELECT COUNT(*) as count FROM admin').get();
+if (adminCount && adminCount.count === 0) {
   db.prepare('INSERT INTO admin (username, password) VALUES (?, ?)').run('admin', 'admin123');
 }
 
@@ -52,7 +60,7 @@ async function startServer() {
     
     const { month } = req.query; // Format: YYYY-MM
     let query = 'SELECT * FROM visits';
-    let params: any[] = [];
+    let params = [];
 
     if (month) {
       query += ' WHERE date LIKE ?';
@@ -163,7 +171,7 @@ async function startServer() {
 
   app.put('/api/auth/admin', (req, res) => {
     const { currentUsername, currentPassword, newUsername, newPassword } = req.body;
-    const admin = db.prepare('SELECT * FROM admin WHERE username = ? AND password = ?').get(currentUsername, currentPassword) as any;
+    const admin = db.prepare('SELECT * FROM admin WHERE username = ? AND password = ?').get(currentUsername, currentPassword);
     if (!admin) {
       return res.status(401).json({ error: '현재 아이디 또는 비밀번호가 일치하지 않습니다.' });
     }
@@ -177,6 +185,7 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
