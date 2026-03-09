@@ -50,8 +50,17 @@ export default function VisitForm({ date, onClose, onSuccess }: VisitFormProps) 
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to submit application');
+        const text = await res.text();
+        let errorMessage = 'Failed to submit application';
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            errorMessage = data.error || errorMessage;
+          } catch (e) {
+            // Not JSON, ignore and use default error message
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       onSuccess();

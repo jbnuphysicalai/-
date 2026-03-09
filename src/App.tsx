@@ -22,8 +22,15 @@ export default function App() {
         }
       });
       if (res.ok) {
-        const data = await res.json();
-        setVisits(data);
+        const text = await res.text();
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            setVisits(data);
+          } catch (e) {
+            console.error('Failed to parse visits JSON:', e);
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to fetch visits:', error);

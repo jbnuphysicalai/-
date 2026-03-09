@@ -42,8 +42,17 @@ export default function AdminSettingsModal({ onClose }: AdminSettingsModalProps)
           onClose();
         }, 1500);
       } else {
-        const data = await res.json();
-        setError(data.error || '계정 정보 변경에 실패했습니다.');
+        const text = await res.text();
+        let errorMessage = '계정 정보 변경에 실패했습니다.';
+        if (text) {
+          try {
+            const data = JSON.parse(text);
+            errorMessage = data.error || errorMessage;
+          } catch (e) {
+            // Not JSON, ignore and use default error message
+          }
+        }
+        setError(errorMessage);
       }
     } catch (err) {
       setError('서버 오류가 발생했습니다.');
